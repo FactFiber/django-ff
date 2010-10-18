@@ -40,6 +40,9 @@ class CursorWrapper(object):
         self.cursor = cursor
 
     def execute(self, query, args=None):
+        #from sys import stderr
+        #q = query % args if args is not None else query
+        #print >>stderr, "QUERY\n", q
         try:
             return self.cursor.execute(query, args)
         except Database.IntegrityError, e:

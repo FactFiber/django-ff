@@ -1,0 +1,18 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 5830a79..07e90d1 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -219,8 +219,12 @@ class SingleRelatedObjectDescriptor(object):
+         if instance is None:
+             return self
+         try:
+-            return getattr(instance, self.cache_name)
++            rel_obj = getattr(instance, self.cache_name)
++            if rel_obj is None:
++                rmod = self.related.model
++                raise rmod.DoesNotExist( 'related %s does not exist' % rmod.__name__ )
++            return rel_obj
+         except AttributeError:
+             params = {'%s__pk' % self.related.field.name: instance._get_pk_val()}
+             db = router.db_for_read(self.related.model, instance=instance)
+ 

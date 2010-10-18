@@ -1,0 +1,20 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 5830a79..b7c9223 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -223,7 +223,14 @@ class SingleRelatedObjectDescriptor(object):
+         except AttributeError:
+             params = {'%s__pk' % self.related.field.name: instance._get_pk_val()}
+             db = router.db_for_read(self.related.model, instance=instance)
+-            rel_obj = self.related.model._base_manager.using(db).get(**params)
++            
++            # use default manager if it wants to be used for related fields, or
++            # base manager otherwise
++            rel_model = self.related.model
++            rel_mgr = rel_model._default_manager
++            if not getattr(rel_mgr, 'use_for_related_fields', False):
++                rel_mgr = rel_model._base_manager
++            rel_obj = rel_mgr.using(db).get(**params)
+             setattr(instance, self.cache_name, rel_obj)
+             return rel_obj
+ 

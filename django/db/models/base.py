@@ -283,7 +283,15 @@ class Model(object):
         # Now we're left with the unprocessed fields that *must* come from
         # keywords, or default.
 
+        # In the case of diamond inheritance, where B and C inherit from A, and
+        # D inherits from B and C, D will have "redundant" copies of each of
+        # A's fields. As we iterate through all the fields, the second time we
+        # see a field we run the risk of reassigning it the default value, so
+        # if a field has already been seen in assigned_fields, we ignore it.
+        assigned_fields = set()
         for field in fields_iter:
+            if field.attname in assigned_fields:
+                continue
             is_related_object = False
             # This slightly odd construct is so that we can access any
             # data-descriptor object (DeferredAttribute) without triggering its
@@ -328,6 +336,7 @@ class Model(object):
                 setattr(self, field.name, rel_obj)
             else:
                 setattr(self, field.attname, val)
+            assigned_fields.add(field.attname)
 
         if kwargs:
             for prop in kwargs.keys():

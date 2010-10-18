@@ -102,6 +102,19 @@ u'<ul class="errorlist"><li>(Hidden field data) This field is required.</li></ul
 >>> f.as_table()
 u'<tr><td colspan="2"><ul class="errorlist"><li>(Hidden field data) This field is required.</li></ul><input type="hidden" name="data" id="id_data" /></td></tr>'
 
+Ticket #13095 : modelformset_factory, modelform_factory, and formset_factory didn't seem to handle Meta options well.
+
+>>> from django import forms
+>>> from regressiontests.forms import models
+>>> class ForeignKeyModelForm(forms.ModelForm):
+...     class Meta:
+...         model = models.ForeignKeyModel
+...         widgets = dict(name=forms.HiddenInput())
+... 
+>>> _ = forms.models.modelform_factory(models.ForeignKeyModel, form=ForeignKeyModelForm)() # just need to check instantiation doesn't raise
+>>> _ = forms.models.modelformset_factory(models.ForeignKeyModel, form=ForeignKeyModelForm)()
+>>> _ = forms.models.inlineformset_factory(models.ParentModel, models.ForeignKeyModel, form=ForeignKeyModelForm)()
+
 ###################################################
 # Tests for XSS vulnerabilities in error messages # 
 ###################################################

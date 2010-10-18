@@ -376,7 +376,7 @@ class ModelForm(BaseModelForm):
     __metaclass__ = ModelFormMetaclass
 
 def modelform_factory(model, form=ModelForm, fields=None, exclude=None,
-                       formfield_callback=lambda f: f.formfield()):
+                       formfield_callback=lambda f, **kwargs: f.formfield(**kwargs)):
     # Create the inner Meta class. FIXME: ideally, we should be able to
     # construct a ModelForm without creating and passing in a temporary
     # inner class.
@@ -658,7 +658,7 @@ class BaseModelFormSet(BaseFormSet):
             form.fields[self._pk_field.name] = ModelChoiceField(qs, initial=pk_value, required=False, widget=HiddenInput)
         super(BaseModelFormSet, self).add_fields(form, index)
 
-def modelformset_factory(model, form=ModelForm, formfield_callback=lambda f: f.formfield(),
+def modelformset_factory(model, form=ModelForm, formfield_callback=lambda f, **kwargs: f.formfield(**kwargs),
                          formset=BaseModelFormSet,
                          extra=1, can_delete=False, can_order=False,
                          max_num=None, fields=None, exclude=None):
@@ -781,15 +781,11 @@ def _get_foreign_key(parent_model, model, fk_name=None, can_fail=False):
     from django.db.models import ForeignKey
     opts = model._meta
     if fk_name:
-        fks_to_parent = [f for f in opts.fields if f.name == fk_name]
-        if len(fks_to_parent) == 1:
-            fk = fks_to_parent[0]
-            if not isinstance(fk, ForeignKey) or \
-                    (fk.rel.to != parent_model and
-                     fk.rel.to not in parent_model._meta.get_parent_list()):
-                raise Exception("fk_name '%s' is not a ForeignKey to %s" % (fk_name, parent_model))
-        elif len(fks_to_parent) == 0:
-            raise Exception("%s has no field named '%s'" % (model, fk_name))
+        fk = opts.get_field(fk_name,many_to_many=False)
+        if not isinstance(fk, ForeignKey) or \
+                (fk.rel.to != parent_model and
+                 fk.rel.to not in parent_model._meta.get_parent_list()):
+            raise Exception("fk_name '%s' is not a ForeignKey to %s" % (fk_name, parent_model))
     else:
         # Try to discover what the ForeignKey from model to parent_model is
         fks_to_parent = [
@@ -813,7 +809,7 @@ def inlineformset_factory(parent_model, model, form=ModelForm,
                           formset=BaseInlineFormSet, fk_name=None,
                           fields=None, exclude=None,
                           extra=3, can_order=False, can_delete=True, max_num=None,
-                          formfield_callback=lambda f: f.formfield()):
+                          formfield_callback=lambda f, **kwargs: f.formfield(**kwargs)):
     """
     Returns an ``InlineFormSet`` for the given kwargs.
 

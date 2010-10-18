@@ -56,6 +56,13 @@ class Group(models.Model):
     def __unicode__(self):
         return u'%s' % self.name
 
+class ParentModel(models.Model):
+    name = models.CharField(max_length=10)
+
+class ForeignKeyModel(models.Model):
+    name = models.CharField(max_length=10)
+    parent = models.ForeignKey(ParentModel)
+
 class TestTicket12510(TestCase):
     ''' It is not necessary to generate choices for ModelChoiceField (regression test for #12510). '''
     def setUp(self):

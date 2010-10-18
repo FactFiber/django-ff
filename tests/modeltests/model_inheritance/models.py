@@ -144,6 +144,26 @@ class Copy(NamedURL):
     def __unicode__(self):
         return self.content
 
+#
+# Diamond inheritance test
+# 
+
+class Owner(models.Model):
+    name = models.CharField(max_length=255)
+    
+class FoodPlace(models.Model):
+    name = models.CharField(max_length=255)
+    owner = models.ForeignKey(Owner,blank=True,null=True)
+
+class Bar(FoodPlace):
+    pass
+
+class Pizzeria(FoodPlace):
+    pass
+
+class PizzeriaBar(Bar, Pizzeria):
+    pizza_bar_specific_field = models.CharField(max_length=255)
+
 __test__ = {'API_TESTS':"""
 # The Student and Worker models both have 'name' and 'age' fields on them and
 # inherit the __unicode__() method, just as with normal Python subclassing.
@@ -375,5 +395,38 @@ True
 >>> len(db.connection.queries)
 3
 >>> settings.DEBUG = False
+
+# Test of diamond inheritance __init__. If B and C inherit from A, and D inherits from B and C, we should be able to use __init__ for D to properly set all the fields, regardless of the redundant copies of A's fields that D inherits from B and C.
+
+>>> p = PizzeriaBar(name="Mike's", pizza_bar_specific_field="Doodle")
+>>> p.name == "Mike's"
+True
+>>> p.pizza_bar_specific_field == "Doodle"
+True
+
+#Note that patch 10808.diff fixes only one symptom, not the real problem. 
+#The real problem is that in case of diamond inheritance there are duplicate field definitions:
+
+  >>> print ' '.join([f.name for f in p._meta.fields])
+  id name owner foodplace_ptr id name owner foodplace_ptr pizzeria_ptr bar_ptr pizza_bar_specific_field
+  
+#The first 4 fields occur twice.
+#My patch won't fix the real problem, but another symptom.
+#When the top-level model of your diamond structure contains a ForeignKey, then you get problems when trying to create inline formsets:
+
+  >>> from django.forms.models import inlineformset_factory
+  >>> f = inlineformset_factory(Owner,PizzeriaBar)
+  Traceback (most recent call last):
+    ...
+  Exception: <class '...PizzeriaBar'> has more than 1 ForeignKey to <class '....Owner'>
+  
+#The workaround I suggest for this problem is to specify the fk_name explicitly:
+
+  >>> from django.forms.models import inlineformset_factory
+  >>> f = inlineformset_factory(Owner,PizzeriaBar,fk_name='owner')
+  
+#Unfortunately this workaround needs another patch 10808b.diff because inlineformset_factory() just can't imagine that a model can have two fields with the same name.
+
+
 
 """}

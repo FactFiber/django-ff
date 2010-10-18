@@ -219,11 +219,22 @@ class SingleRelatedObjectDescriptor(object):
         if instance is None:
             return self
         try:
-            return getattr(instance, self.cache_name)
+            rel_obj = getattr(instance, self.cache_name)
+            if rel_obj is None:
+                rmod = self.related.model
+                raise rmod.DoesNotExist( 'related %s does not exist' % rmod.__name__ )
+            return rel_obj
         except AttributeError:
             params = {'%s__pk' % self.related.field.name: instance._get_pk_val()}
             db = router.db_for_read(self.related.model, instance=instance)
-            rel_obj = self.related.model._base_manager.using(db).get(**params)
+            
+            # use default manager if it wants to be used for related fields, or
+            # base manager otherwise
+            rel_model = self.related.model
+            rel_mgr = rel_model._default_manager
+            if not getattr(rel_mgr, 'use_for_related_fields', False):
+                rel_mgr = rel_model._base_manager
+            rel_obj = rel_mgr.using(db).get(**params)
             setattr(instance, self.cache_name, rel_obj)
             return rel_obj
 

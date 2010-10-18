@@ -137,6 +137,11 @@ class BaseHandler(object):
                 raise
             except: # Handle everything else, including SuspiciousOperation, etc.
                 # Get the exception info now, in case another exception is thrown later.
+                from traceback import print_exc
+                from sys import stderr
+                print_exc( file = stderr )
+                stderr.write( '--------------------\n')
+                stderr.flush()
                 receivers = signals.got_request_exception.send(sender=self.__class__, request=request)
                 return self.handle_uncaught_exception(request, resolver, sys.exc_info())
         finally:
