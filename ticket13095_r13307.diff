@@ -1,0 +1,73 @@
+Index: django/forms/models.py
+===================================================================
+--- django/forms/models.py	(revision 13307)
++++ django/forms/models.py	(working copy)
+@@ -376,7 +376,7 @@
+     __metaclass__ = ModelFormMetaclass
+ 
+ def modelform_factory(model, form=ModelForm, fields=None, exclude=None,
+-                       formfield_callback=lambda f: f.formfield()):
++                       formfield_callback=lambda f, **kwargs: f.formfield(**kwargs)):
+     # Create the inner Meta class. FIXME: ideally, we should be able to
+     # construct a ModelForm without creating and passing in a temporary
+     # inner class.
+@@ -658,7 +658,7 @@
+             form.fields[self._pk_field.name] = ModelChoiceField(qs, initial=pk_value, required=False, widget=HiddenInput)
+         super(BaseModelFormSet, self).add_fields(form, index)
+ 
+-def modelformset_factory(model, form=ModelForm, formfield_callback=lambda f: f.formfield(),
++def modelformset_factory(model, form=ModelForm, formfield_callback=lambda f, **kwargs: f.formfield(**kwargs),
+                          formset=BaseModelFormSet,
+                          extra=1, can_delete=False, can_order=False,
+                          max_num=None, fields=None, exclude=None):
+@@ -813,7 +813,7 @@
+                           formset=BaseInlineFormSet, fk_name=None,
+                           fields=None, exclude=None,
+                           extra=3, can_order=False, can_delete=True, max_num=None,
+-                          formfield_callback=lambda f: f.formfield()):
++                          formfield_callback=lambda f, **kwargs: f.formfield(**kwargs)):
+     """
+     Returns an ``InlineFormSet`` for the given kwargs.
+ 
+Index: tests/regressiontests/forms/models.py
+===================================================================
+--- tests/regressiontests/forms/models.py	(revision 13307)
++++ tests/regressiontests/forms/models.py	(working copy)
+@@ -56,6 +56,13 @@
+     def __unicode__(self):
+         return u'%s' % self.name
+ 
++class ParentModel(models.Model):
++    name = models.CharField(max_length=10)
++
++class ForeignKeyModel(models.Model):
++    name = models.CharField(max_length=10)
++    parent = models.ForeignKey(ParentModel)
++
+ class TestTicket12510(TestCase):
+     ''' It is not necessary to generate choices for ModelChoiceField (regression test for #12510). '''
+     def setUp(self):
+Index: tests/regressiontests/forms/regressions.py
+===================================================================
+--- tests/regressiontests/forms/regressions.py	(revision 13307)
++++ tests/regressiontests/forms/regressions.py	(working copy)
+@@ -102,6 +102,19 @@
+ >>> f.as_table()
+ u'<tr><td colspan="2"><ul class="errorlist"><li>(Hidden field data) This field is required.</li></ul><input type="hidden" name="data" id="id_data" /></td></tr>'
+ 
++Ticket #13095 : modelformset_factory, modelform_factory, and formset_factory didn't seem to handle Meta options well.
++
++>>> from django import forms
++>>> from regressiontests.forms import models
++>>> class ForeignKeyModelForm(forms.ModelForm):
++...     class Meta:
++...         model = models.ForeignKeyModel
++...         widgets = dict(name=forms.HiddenInput())
++... 
++>>> _ = forms.models.modelform_factory(models.ForeignKeyModel, form=ForeignKeyModelForm)() # just need to check instantiation doesn't raise
++>>> _ = forms.models.modelformset_factory(models.ForeignKeyModel, form=ForeignKeyModelForm)()
++>>> _ = forms.models.inlineformset_factory(models.ParentModel, models.ForeignKeyModel, form=ForeignKeyModelForm)()
++
+ ###################################################
+ # Tests for XSS vulnerabilities in error messages # 
+ ###################################################
