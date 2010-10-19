@@ -3,5 +3,5 @@
 .project
 .pydevproject
 #*
-./build
-./docs/_build
+build
+docs/_build
