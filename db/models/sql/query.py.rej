@@ -1,0 +1,21 @@
+***************
+*** 885,893 ****
+              group_by = self.group_by or []
+  
+              extra_selects = []
+-             for extra_select, extra_params in self.extra_select.itervalues():
+-                 extra_selects.append(extra_select)
+-                 params.extend(extra_params)
+              for col in group_by + self.related_select_cols + extra_selects:
+                  if isinstance(col, (list, tuple)):
+                      result.append('%s.%s' % (qn(col[0]), qn(col[1])))
+--- 885,893 ----
+              group_by = self.group_by or []
+  
+              extra_selects = []
++             for extra_select_key in self.extra_select.iterkeys():
++                 extra_selects.append(extra_select_key)
++ 
+              for col in group_by + self.related_select_cols + extra_selects:
+                  if isinstance(col, (list, tuple)):
+                      result.append('%s.%s' % (qn(col[0]), qn(col[1])))
