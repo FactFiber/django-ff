@@ -44,7 +44,17 @@ class CursorWrapper(object):
         #q = query % args if args is not None else query
         #print >>stderr, "QUERY\n", q
         try:
-            return self.cursor.execute(query, args)
+            try:
+                return self.cursor.execute(query, args)
+            except Exception, e:
+                from sys import stderr
+                print >>stderr, "Q", query
+                print >>stderr, "A", args
+                print >>stderr, "E", e
+                from traceback import print_stack
+                print_stack( file = stderr)
+                stderr.flush()
+                raise
         except Database.IntegrityError, e:
             raise utils.IntegrityError, utils.IntegrityError(*tuple(e)), sys.exc_info()[2]
         except Database.DatabaseError, e:
