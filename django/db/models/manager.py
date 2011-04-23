@@ -1,4 +1,4 @@
-from django.utils import copycompat as copy
+import copy
 from django.conf import settings
 from django.db import router
 from django.db.models.query import QuerySet, EmptyQuerySet, insert_query, RawQuerySet
@@ -163,6 +163,9 @@ class Manager(object):
 
     def order_by(self, *args, **kwargs):
         return self.get_query_set().order_by(*args, **kwargs)
+
+    def select_for_update(self, *args, **kwargs):
+        return self.get_query_set().select_for_update(*args, **kwargs)
 
     def select_related(self, *args, **kwargs):
         return self.get_query_set().select_related(*args, **kwargs)

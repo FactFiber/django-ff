@@ -1,4 +1,3 @@
-from django import template
 from django.db import transaction
 from django.conf import settings
 from django.contrib import admin
@@ -7,8 +6,8 @@ from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, Http404
-from django.shortcuts import render_to_response, get_object_or_404
-from django.template import RequestContext
+from django.shortcuts import get_object_or_404
+from django.template.response import TemplateResponse
 from django.utils.html import escape
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext, ugettext_lazy as _
@@ -120,7 +119,7 @@ class UserAdmin(admin.ModelAdmin):
         fieldsets = [(None, {'fields': form.base_fields.keys()})]
         adminForm = admin.helpers.AdminForm(form, fieldsets, {})
 
-        return render_to_response(self.change_user_password_template or 'admin/auth/user/change_password.html', {
+        context = {
             'title': _('Change password: %s') % escape(user.username),
             'adminForm': adminForm,
             'form': form,
@@ -135,8 +134,26 @@ class UserAdmin(admin.ModelAdmin):
             'save_as': False,
             'show_save': True,
             'root_path': self.admin_site.root_path,
-        }, context_instance=RequestContext(request))
+        }
+        return TemplateResponse(request, [
+            self.change_user_password_template or
+            'admin/auth/user/change_password.html'
+        ], context, current_app=self.admin_site.name)
 
+    def response_add(self, request, obj, post_url_continue='../%s/'):
+        """
+        Determines the HttpResponse for the add_view stage. It mostly defers to
+        its superclass implementation but is customized because the User model
+        has a slightly different workflow.
+        """
+        # We should allow further modification of the user just added i.e. the
+        # 'Save' button should behave like the 'Save and continue editing'
+        # button except in two scenarios:
+        # * The user has pressed the 'Save and add another' button
+        # * We are adding a user in a popup
+        if '_addanother' not in request.POST and '_popup' not in request.POST:
+            request.POST['_continue'] = 1
+        return super(UserAdmin, self).response_add(request, obj, post_url_continue)
 
 admin.site.register(Group, GroupAdmin)
 admin.site.register(User, UserAdmin)

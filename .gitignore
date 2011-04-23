@@ -1,7 +1,10 @@
-*.pyc
+*.egg-info
+*.pot
+*.py[co]
+build
+docs/_build
 *~
 .project
 .pydevproject
 #*
-build
-docs/_build
+

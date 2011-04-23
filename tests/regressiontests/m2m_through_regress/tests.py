@@ -7,7 +7,8 @@ from django.core import management
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from models import Person, Group, Membership, UserMembership
+from models import (Person, Group, Membership, UserMembership,
+                    Car, Driver, CarDriver)
 
 
 class M2MThroughTestCase(TestCase):
@@ -66,11 +67,13 @@ class M2MThroughTestCase(TestCase):
 
         p = Person.objects.create(name="Bob")
         g = Group.objects.create(name="Roll")
-        Membership.objects.create(person=p, group=g)
+        m =Membership.objects.create(person=p, group=g)
+
+        pks = {"p_pk": p.pk, "g_pk": g.pk, "m_pk": m.pk}
 
         out = StringIO()
         management.call_command("dumpdata", "m2m_through_regress", format="json", stdout=out)
-        self.assertEqual(out.getvalue().strip(), """[{"pk": 1, "model": "m2m_through_regress.membership", "fields": {"person": 1, "price": 100, "group": 1}}, {"pk": 1, "model": "m2m_through_regress.person", "fields": {"name": "Bob"}}, {"pk": 1, "model": "m2m_through_regress.group", "fields": {"name": "Roll"}}]""")
+        self.assertEqual(out.getvalue().strip(), """[{"pk": %(m_pk)s, "model": "m2m_through_regress.membership", "fields": {"person": %(p_pk)s, "price": 100, "group": %(g_pk)s}}, {"pk": %(p_pk)s, "model": "m2m_through_regress.person", "fields": {"name": "Bob"}}, {"pk": %(g_pk)s, "model": "m2m_through_regress.group", "fields": {"name": "Roll"}}]""" % pks)
 
         out = StringIO()
         management.call_command("dumpdata", "m2m_through_regress", format="xml",
@@ -78,19 +81,19 @@ class M2MThroughTestCase(TestCase):
         self.assertEqual(out.getvalue().strip(), """
 <?xml version="1.0" encoding="utf-8"?>
 <django-objects version="1.0">
-  <object pk="1" model="m2m_through_regress.membership">
-    <field to="m2m_through_regress.person" name="person" rel="ManyToOneRel">1</field>
-    <field to="m2m_through_regress.group" name="group" rel="ManyToOneRel">1</field>
+  <object pk="%(m_pk)s" model="m2m_through_regress.membership">
+    <field to="m2m_through_regress.person" name="person" rel="ManyToOneRel">%(p_pk)s</field>
+    <field to="m2m_through_regress.group" name="group" rel="ManyToOneRel">%(g_pk)s</field>
     <field type="IntegerField" name="price">100</field>
   </object>
-  <object pk="1" model="m2m_through_regress.person">
+  <object pk="%(p_pk)s" model="m2m_through_regress.person">
     <field type="CharField" name="name">Bob</field>
   </object>
-  <object pk="1" model="m2m_through_regress.group">
+  <object pk="%(g_pk)s" model="m2m_through_regress.group">
     <field type="CharField" name="name">Roll</field>
   </object>
 </django-objects>
-        """.strip())
+        """.strip() % pks)
 
     def test_join_trimming(self):
         "Check that we don't involve too many copies of the intermediate table when doing a join. Refs #8046, #8254"
@@ -115,6 +118,25 @@ class M2MThroughTestCase(TestCase):
                 "<Group: Roll>",
             ]
         )
+
+
+class ToFieldThroughTests(TestCase):
+    def setUp(self):
+        self.car = Car.objects.create(make="Toyota")
+        self.driver = Driver.objects.create(name="Ryan Briscoe")
+        CarDriver.objects.create(car=self.car, driver=self.driver)
+
+    def test_to_field(self):
+        self.assertQuerysetEqual(
+            self.car.drivers.all(),
+            ["<Driver: Ryan Briscoe>"]
+            )
+
+    def test_to_field_reverse(self):
+        self.assertQuerysetEqual(
+            self.driver.car_set.all(),
+            ["<Car: Toyota>"]
+            )
 
 class ThroughLoadDataTestCase(TestCase):
     fixtures = ["m2m_through"]

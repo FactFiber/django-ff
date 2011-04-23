@@ -23,7 +23,7 @@ if (version < (1,2,1) or (version[:3] == (1, 2, 1) and
     raise ImproperlyConfigured("MySQLdb-1.2.1p2 or newer is required; you have %s" % Database.__version__)
 
 from MySQLdb.converters import conversions
-from MySQLdb.constants import FIELD_TYPE, FLAG, CLIENT
+from MySQLdb.constants import FIELD_TYPE, CLIENT
 
 from django.db import utils
 from django.db.backends import *
@@ -124,6 +124,29 @@ class DatabaseFeatures(BaseDatabaseFeatures):
     allows_group_by_pk = True
     related_fields_match_type = True
     allow_sliced_subqueries = False
+    has_select_for_update = True
+    has_select_for_update_nowait = False
+    supports_forward_references = False
+    supports_long_model_names = False
+    supports_microsecond_precision = False
+    supports_regex_backreferencing = False
+    supports_date_lookup_using_string = False
+    supports_timezones = False
+    requires_explicit_null_ordering_when_grouping = True
+    allows_primary_key_0 = False
+
+    def _can_introspect_foreign_keys(self):
+        "Confirm support for introspected foreign keys"
+        cursor = self.connection.cursor()
+        cursor.execute('CREATE TABLE INTROSPECT_TEST (X INT)')
+        # This command is MySQL specific; the second column
+        # will tell you the default table type of the created
+        # table. Since all Django's test tables will have the same
+        # table type, that's enough to evaluate the feature.
+        cursor.execute('SHOW TABLE STATUS WHERE Name="INTROSPECT_TEST"')
+        result = cursor.fetchone()
+        cursor.execute('DROP TABLE INTROSPECT_TEST')
+        return result[1] != 'MyISAM'
 
 class DatabaseOperations(BaseDatabaseOperations):
     compiler_module = "django.db.backends.mysql.compiler"
@@ -150,6 +173,10 @@ class DatabaseOperations(BaseDatabaseOperations):
             sql = "CAST(DATE_FORMAT(%s, '%s') AS DATETIME)" % (field_name, format_str)
         return sql
 
+    def date_interval_sql(self, sql, connector, timedelta):
+        return "(%s %s INTERVAL '%d 0:0:%d:%d' DAY_MICROSECOND)" % (sql, connector,
+                timedelta.days, timedelta.seconds, timedelta.microseconds)
+
     def drop_foreignkey_sql(self):
         return "DROP FOREIGN KEY"
 
@@ -163,6 +190,12 @@ class DatabaseOperations(BaseDatabaseOperations):
 
     def fulltext_search_sql(self, field_name):
         return 'MATCH (%s) AGAINST (%%s IN BOOLEAN MODE)' % field_name
+
+    def last_executed_query(self, cursor, sql, params):
+        # With MySQLdb, cursor objects have an (undocumented) "_last_executed"
+        # attribute where the exact query sent to the database is saved.
+        # See MySQLdb/cursors.py in the source distribution.
+        return cursor._last_executed
 
     def no_limit_value(self):
         # 2**64 - 1, as recommended by the MySQL documentation
@@ -231,7 +264,7 @@ class DatabaseOperations(BaseDatabaseOperations):
         return 64
 
 class DatabaseWrapper(BaseDatabaseWrapper):
-
+    vendor = 'mysql'
     operators = {
         'exact': '= %s',
         'iexact': 'LIKE %s',
@@ -253,8 +286,8 @@ class DatabaseWrapper(BaseDatabaseWrapper):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
 
         self.server_version = None
-        self.features = DatabaseFeatures()
-        self.ops = DatabaseOperations()
+        self.features = DatabaseFeatures(self)
+        self.ops = DatabaseOperations(self)
         self.client = DatabaseClient(self)
         self.creation = DatabaseCreation(self)
         self.introspection = DatabaseIntrospection(self)
@@ -297,7 +330,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             self.connection = Database.connect(**kwargs)
             self.connection.encoders[SafeUnicode] = self.connection.encoders[unicode]
             self.connection.encoders[SafeString] = self.connection.encoders[str]
-            connection_created.send(sender=self.__class__)
+            connection_created.send(sender=self.__class__, connection=self)
         cursor = CursorWrapper(self.connection.cursor())
         return cursor
 
