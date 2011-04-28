@@ -646,11 +646,7 @@ class BaseModelFormSet(BaseFormSet):
             form.fields[self._pk_field.name] = ModelChoiceField(qs, initial=pk_value, required=False, widget=HiddenInput)
         super(BaseModelFormSet, self).add_fields(form, index)
 
-<<<<<<< HEAD
 def modelformset_factory(model, form=ModelForm, formfield_callback=lambda f, **kwargs: f.formfield(**kwargs),
-=======
-def modelformset_factory(model, form=ModelForm, formfield_callback=None,
->>>>>>> FETCH_HEAD
                          formset=BaseModelFormSet,
                          extra=1, can_delete=False, can_order=False,
                          max_num=None, fields=None, exclude=None):
@@ -793,11 +789,7 @@ def inlineformset_factory(parent_model, model, form=ModelForm,
                           formset=BaseInlineFormSet, fk_name=None,
                           fields=None, exclude=None,
                           extra=3, can_order=False, can_delete=True, max_num=None,
-<<<<<<< HEAD
                           formfield_callback=lambda f, **kwargs: f.formfield(**kwargs)):
-=======
-                          formfield_callback=None):
->>>>>>> FETCH_HEAD
     """
     Returns an ``InlineFormSet`` for the given kwargs.
 
