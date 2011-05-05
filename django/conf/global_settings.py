@@ -453,22 +453,6 @@ COMMENTS_ALLOW_PROFANITIES = False
 # 'hasNoProfanities' validator. All of these should be in lowercase.
 PROFANITIES_LIST = ()
 
-# The group ID that designates which users are banned.
-# Set to None if you're not using it.
-COMMENTS_BANNED_USERS_GROUP = None
-
-# The group ID that designates which users can moderate comments.
-# Set to None if you're not using it.
-COMMENTS_MODERATORS_GROUP = None
-
-# The group ID that designates the users whose comments should be emailed to MANAGERS.
-# Set to None if you're not using it.
-COMMENTS_SKETCHY_USERS_GROUP = None
-
-# The system will email MANAGERS the first COMMENTS_FIRST_FEW comments by each
-# user. Set this to 0 if you want to disable it.
-COMMENTS_FIRST_FEW = 0
-
 ##################
 # AUTHENTICATION #
 ##################

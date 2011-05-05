@@ -15,7 +15,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ViewDoesNotExist
 from django.utils.datastructures import MultiValueDict
 from django.utils.encoding import iri_to_uri, force_unicode, smart_str
-from django.utils.functional import memoize
+from django.utils.functional import memoize, lazy
 from django.utils.importlib import import_module
 from django.utils.regex_helper import normalize
 
@@ -131,7 +131,7 @@ class RegexURLPattern(object):
         self.name = name
 
     def __repr__(self):
-        return '<%s %s %s>' % (self.__class__.__name__, self.name, self.regex.pattern)
+        return smart_str(u'<%s %s %s>' % (self.__class__.__name__, self.name, self.regex.pattern))
 
     def add_prefix(self, prefix):
         """
@@ -188,7 +188,7 @@ class RegexURLResolver(object):
         self._app_dict = None
 
     def __repr__(self):
-        return '<%s %s (%s:%s) %s>' % (self.__class__.__name__, self.urlconf_name, self.app_name, self.namespace, self.regex.pattern)
+        return smart_str(u'<%s %s (%s:%s) %s>' % (self.__class__.__name__, self.urlconf_name, self.app_name, self.namespace, self.regex.pattern))
 
     def _populate(self):
         lookups = MultiValueDict()
@@ -389,6 +389,8 @@ def reverse(viewname, urlconf=None, args=None, kwargs=None, prefix=None, current
 
     return iri_to_uri(u'%s%s' % (prefix, resolver.reverse(view,
             *args, **kwargs)))
+
+reverse_lazy = lazy(reverse, str)
 
 def clear_url_caches():
     global _resolver_cache
