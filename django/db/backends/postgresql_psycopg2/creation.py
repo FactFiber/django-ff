@@ -75,3 +75,8 @@ class DatabaseCreation(BaseDatabaseCreation):
         else:
             output = []
         return output
+
+    def prepare_for_test_db_ddl(self):
+        """Rollback and close the active transaction."""
+        self.connection.connection.rollback()
+        self.connection.connection.set_isolation_level(0)
