@@ -399,7 +399,7 @@ class PostGISOperations(DatabaseOperations, BaseSpatialOperations):
 
         return placeholder
 
-    def _get_postgis_func(self, func):
+    def _get_postgis_func(self, func, close=True):
         """
         Helper routine for calling PostGIS functions and returning their result.
         """
@@ -413,16 +413,17 @@ class PostGISOperations(DatabaseOperations, BaseSpatialOperations):
                 raise
         finally:
             # Close out the connection.  See #9437.
-            self.connection.close()
+            if close:
+                self.connection.close()
         return row[0]
 
     def postgis_geos_version(self):
         "Returns the version of the GEOS library used with PostGIS."
         return self._get_postgis_func('postgis_geos_version')
 
-    def postgis_lib_version(self):
+    def postgis_lib_version(self, close=True):
         "Returns the version number of the PostGIS library used with PostgreSQL."
-        return self._get_postgis_func('postgis_lib_version')
+        return self._get_postgis_func('postgis_lib_version', close)
 
     def postgis_proj_version(self):
         "Returns the version of the PROJ.4 library used with PostGIS."
@@ -436,13 +437,13 @@ class PostGISOperations(DatabaseOperations, BaseSpatialOperations):
         "Returns PostGIS version number and compile-time options."
         return self._get_postgis_func('postgis_full_version')
 
-    def postgis_version_tuple(self):
+    def postgis_version_tuple(self, close=True):
         """
         Returns the PostGIS version as a tuple (version string, major,
         minor, subminor).
         """
         # Getting the PostGIS version
-        version = self.postgis_lib_version()
+        version = self.postgis_lib_version(close)
         m = self.version_regex.match(version)
 
         if m:

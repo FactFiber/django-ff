@@ -10,7 +10,9 @@ class PostGISCreation(DatabaseCreation):
         from django.contrib.gis.db.models.fields import GeometryField
 
         output = super(PostGISCreation, self).sql_indexes_for_field(model, f, style)
-
+        postgis_version = self.connection.ops.postgis_version_tuple(close=False)[1:]
+        
+        
         if isinstance(f, GeometryField):
             gqn = self.connection.ops.geo_quote_name
             qn = self.connection.ops.quote_name
@@ -45,7 +47,12 @@ class PostGISCreation(DatabaseCreation):
                 if f.geography:
                     index_opts = ''
                 else:
-                    index_opts = ' ' + style.SQL_KEYWORD(self.geom_index_opts)
+                    # Check for PostGIS Version
+                    # PostGIS 2.0 does not support GIST_GEOMETRY_OPS
+                    if postgis_version >= (2, 0):
+                        index_opts = ''
+                    else:
+                        index_opts = ' ' + style.SQL_KEYWORD(self.geom_index_opts)
                 output.append(style.SQL_KEYWORD('CREATE INDEX ') +
                               style.SQL_TABLE(qn('%s_%s_id' % (db_table, f.column))) +
                               style.SQL_KEYWORD(' ON ') +
