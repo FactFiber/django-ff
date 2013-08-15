@@ -6,6 +6,7 @@ import codecs
 from decimal import Decimal
 
 from django.utils.functional import Promise
+from django.utils import six
 
 class DjangoUnicodeDecodeError(UnicodeDecodeError):
     def __init__(self, obj, *args):
