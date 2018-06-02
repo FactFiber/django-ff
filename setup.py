@@ -17,10 +17,10 @@ class osx_install_data(install_data):
         self.set_undefined_options('install', ('install_lib', 'install_dir'))
         install_data.finalize_options(self)
 
-if sys.platform == "darwin": 
-    cmdclasses = {'install_data': osx_install_data} 
-else: 
-    cmdclasses = {'install_data': install_data} 
+if sys.platform == "darwin":
+    cmdclasses = {'install_data': osx_install_data}
+else:
+    cmdclasses = {'install_data': install_data}
 
 def fullsplit(path, result=None):
     """
@@ -56,8 +56,8 @@ for dirpath, dirnames, filenames in os.walk(django_dir):
         if dirname.startswith('.'): del dirnames[i]
     if '__init__.py' in filenames:
         packages.append('.'.join(fullsplit(dirpath)))
-    elif filenames:
-        data_files.append([dirpath, [os.path.join(dirpath, f) for f in filenames]])
+    # elif filenames:
+    #     data_files.append([dirpath, [os.path.join(dirpath, f) for f in filenames]])
 
 # Small hack for working with bdist_wininst.
 # See http://mail.python.org/pipermail/distutils-sig/2004-August/004134.html
@@ -80,7 +80,8 @@ setup(
     download_url = 'http://media.djangoproject.com/releases/1.3/Django-1.3.tar.gz',
     packages = packages,
     cmdclass = cmdclasses,
-    data_files = data_files,
+    # data_files = data_files,
+    include_package_data = True,
     scripts = ['django/bin/django-admin.py'],
     classifiers = [
         'Development Status :: 5 - Production/Stable',
